@@ -4,7 +4,7 @@ A web-based 3D environment built with React, Vite, and Three.js. This applicatio
 
 <img width="1916" height="1088" alt="image" src="https://github.com/user-attachments/assets/7ae155b5-7ffc-474e-864e-a9ec4b893c03" />
 
-Also an experiement with local LLMs. Most the code is written by GPT-OSS-20b using opencode and lmStudio on an RTX 5060TI 16gb
+Also an experiement with local LLMs. Most the code is written by GPT-OSS-20b and gemma4 using opencode and lmStudio on an RTX 5060TI 16gb
 
 ## 🚀 Features
 
