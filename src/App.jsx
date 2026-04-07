@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { ShapesSidebar } from './ShapeSidebar'
 
+import { Button } from "@shadcn/ui/components/ui/button"
+
 // Helper to create geometry based on shape name
 const createGeometry = (shape) => {
   switch (shape) {
@@ -22,19 +24,20 @@ const createGeometry = (shape) => {
 const App = () => {
   const [shape, setShape] = useState('cube');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const targetZoomRef = useRef(2);
   const mountRef = useRef(null)
   const meshRef = useRef(null)
   const sceneRef = useRef(null)
-const rendererRef = useRef(null)
+  const rendererRef = useRef(null)
 
-   // Store camera reference for later re-render
-   const cameraRef = useRef(null)
+  // Store camera reference for later re-render
+  const cameraRef = useRef(null)
 
-   // Drag and rotation state refs
-   const targetRot = useRef({x:0,y:0})
-   const isDraggingRef = useRef(false)
-   const prevXRef = useRef(0)
-   const prevYRef = useRef(0)
+  // Drag and rotation state refs
+  const targetRot = useRef({ x: 0, y: 0 })
+  const isDraggingRef = useRef(false)
+  const prevXRef = useRef(0)
+  const prevYRef = useRef(0)
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -63,8 +66,14 @@ const rendererRef = useRef(null)
     let animId
     const animate = () => {
       if (meshRef.current) {
-        meshRef.current.rotation.x += (targetRot.current.x - meshRef.current.rotation.x)*0.1
-        meshRef.current.rotation.y += (targetRot.current.y - meshRef.current.rotation.y)*0.1
+        meshRef.current.rotation.x += (targetRot.current.x - meshRef.current.rotation.x) * 0.1
+        meshRef.current.rotation.y += (targetRot.current.y - meshRef.current.rotation.y) * 0.1
+      }
+      // Lerp camera zoom towards targetZoomRef
+      const cam = cameraRef.current
+      if (cam) {
+        const currentZ = cam.position.z
+        cam.position.z += (targetZoomRef.current - currentZ) * 0.1
       }
       renderer.render(scene, camera)
       animId = requestAnimationFrame(animate)
@@ -109,6 +118,7 @@ const rendererRef = useRef(null)
 
   // Update geometry when shape changes and re-render
   useEffect(() => {
+    // Update geometry when shape changes and re-render
     if (meshRef.current) {
       const newGeom = createGeometry(shape)
       meshRef.current.geometry.dispose()
@@ -119,15 +129,44 @@ const rendererRef = useRef(null)
     }
   }, [shape])
 
+  // Adjust renderer and camera when viewport size changes due to sidebar toggle
+  useEffect(() => {
+    if (rendererRef.current && mountRef.current && cameraRef.current) {
+      const width = mountRef.current.clientWidth
+      const height = mountRef.current.clientHeight
+      rendererRef.current.setSize(width, height)
+      cameraRef.current.aspect = width / height
+      cameraRef.current.updateProjectionMatrix()
+    }
+  }, [sidebarOpen])
+
+  // Zoom camera on mouse wheel
+  useEffect(() => {
+    const el = mountRef.current
+    if (!el) return
+    const handleWheel = (e) => {
+      e.preventDefault()
+      const delta = e.deltaY > 0 ? 0.1 : -0.1
+      targetZoomRef.current += delta
+      // clamp desired zoom limits
+      if (targetZoomRef.current < 1) targetZoomRef.current = 1
+      if (targetZoomRef.current > 5) targetZoomRef.current = 5
+    }
+    el.addEventListener('wheel', handleWheel)
+    return () => {
+      el.removeEventListener('wheel', handleWheel)
+    }
+  }, [])
+
   return (
-  <div style={{ position: 'relative', width: '100%', height: '100%', backgroundColor:'rgba(17,17,17,.6)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)' }}>
-    <button onClick={() => setSidebarOpen(prev => !prev)} style={{position:'absolute', top:10, left: sidebarOpen ? 260 : 10, zIndex:10, color:'#fff', margin:'4px'}}>{sidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}</button>
-      <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
-    {sidebarOpen && <div style={{ position:'absolute', top:0, left:0, width:250, height:'100%', backgroundColor:'rgba(34,34,34,.8)', color:'#fff', padding:20, backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)', display:'flex', flexDirection:'column' }}>
-      <ShapesSidebar shape={shape} setShape={setShape} isOpen={sidebarOpen} onToggle={() => setSidebarOpen(prev=>!prev)} />
-    </div>}
-  </div>
-)
+    <div style={{ display: 'flex', width: '100%', height: '100%' }}>
+      {sidebarOpen && <div style={{ width: 250, backgroundColor: 'rgba(34,34,34,.8)', color: '#fff', padding: 20, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column' }}><ShapesSidebar shape={shape} setShape={setShape} isOpen={sidebarOpen} onToggle={() => setSidebarOpen(prev => !prev)} /></div>}
+      <div style={{ flex: 1, position: 'relative', backgroundColor: 'rgba(17,17,17,.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
+        <Button onClick={() => setSidebarOpen(prev => !prev)} style={{ position: 'absolute', top: 10, left: 10, zIndex: 10, color: '#fff', margin: '4px' }}>{sidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}</Button>
+        <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
+      </div>
+    </div>
+  )
 }
 
 export default App

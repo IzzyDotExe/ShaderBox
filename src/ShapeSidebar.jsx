@@ -27,7 +27,7 @@ export const ShapesSidebar = ({ shape, setShape, isOpen, onToggle }) => {
 
   return (
     <SidebarProvider>
-      <Sidebar className="w-64 bg-muted/80 text-foreground">
+      <Sidebar className="w-64 bg-muted/80 text-foreground dark">
         <SidebarContent>
           <div className="p-2">
             <SidebarMenu>
