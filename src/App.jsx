@@ -22,15 +22,19 @@ const createGeometry = (shape) => {
   }
 }
 
-const defaultVertexShader = `varying vec2 vUv;
+const defaultVertexShader = `uniform float uTime;
+varying vec2 vUv;
 void main() {
   vUv = uv;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vec3 pos = position;
+  pos.z += sin(pos.x * 5.0 + uTime) * 0.1;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
 }`;
 
-const defaultFragmentShader = `varying vec2 vUv;
+const defaultFragmentShader = `uniform float uTime;
+varying vec2 vUv;
 void main() {
-  gl_FragColor = vec4(vUv.x, vUv.y, 0.5, 1.0);
+  gl_FragColor = vec4(vUv.x, vUv.y, (sin(uTime) + 1.0) / 2.0, 1.0);
 }`;
 
 const App = () => {
@@ -39,9 +43,14 @@ const App = () => {
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [vertexShader, setVertexShader] = useState(defaultVertexShader);
   const [fragmentShader, setFragmentShader] = useState(defaultFragmentShader);
+  const uniformsRef = useRef({
+    uTime: { value: 0 }
+  });
+
   const [activeMaterial, setActiveMaterial] = useState(() => new THREE.ShaderMaterial({
     vertexShader: defaultVertexShader,
-    fragmentShader: defaultFragmentShader
+    fragmentShader: defaultFragmentShader,
+    uniforms: uniformsRef.current
   }));
 
   const targetZoomRef = useRef(2);
@@ -54,7 +63,8 @@ const App = () => {
     try {
       const newMaterial = new THREE.ShaderMaterial({
         vertexShader,
-        fragmentShader
+        fragmentShader,
+        uniforms: uniformsRef.current
       });
       if (meshRef.current) {
         meshRef.current.material.dispose();
@@ -99,7 +109,11 @@ const App = () => {
 
     // Start animation loop for lerped rotation
     let animId
+    const clock = new THREE.Clock();
     const animate = () => {
+      const elapsedTime = clock.getElapsedTime()
+      uniformsRef.current.uTime.value = elapsedTime;
+
       if (meshRef.current) {
         meshRef.current.rotation.x += (targetRot.current.x - meshRef.current.rotation.x) * 0.1
         meshRef.current.rotation.y += (targetRot.current.y - meshRef.current.rotation.y) * 0.1
