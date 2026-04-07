@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
-import Card from './Card'
+import { ShapesSidebar } from './ShapeSidebar'
 
 // Helper to create geometry based on shape name
 const createGeometry = (shape) => {
@@ -115,51 +115,13 @@ const rendererRef = useRef(null)
   }, [shape])
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', backgroundColor:'rgba(17,17,17,.6)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)' }}>
-      <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
-<aside
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: 250,
-          height: '100%',
-          backgroundColor: 'rgba(34,34,34,.8)',
-          color: '#fff',
-          padding: 20,
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <h3>Shape</h3>
-        {['cube', 'sphere', 'pyramid'].map((s) => {
-          let desc = ''
-          switch (s) {
-            case 'cube':
-              desc = 'Cube: 1 unit³'
-              break
-            case 'sphere':
-              desc = 'Sphere: radius 0.7 units'
-              break
-            case 'pyramid':
-              desc = 'Pyramid (cone): height 1.2, base radius 0.8'
-              break
-          }
-          return (
-            <Card
-              key={s}
-              label={s}
-              description={desc}
-              isActive={shape === s}
-              onClick={() => setShape(s)}
-            />
-          )
-        })}
-      </aside>
+  <div style={{ position: 'relative', width: '100%', height: '100%', backgroundColor:'rgba(17,17,17,.6)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)' }}>
+    <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
+    <div style={{ position:'absolute', top:0, left:0, width:250, height:'100%', backgroundColor:'rgba(34,34,34,.8)', color:'#fff', padding:20, backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)', display:'flex', flexDirection:'column' }}>
+      <ShapesSidebar shape={shape} setShape={setShape} />
     </div>
-  )
+  </div>
+)
 }
 
 export default App

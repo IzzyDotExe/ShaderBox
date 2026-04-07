@@ -8,9 +8,10 @@
     "forceConsistentCasingInFileNames": true,
     "strict": false,
     "skipLibCheck": true,
+    "baseUrl": ".",
     "paths": {
-      "@shadcn/ui": ["./node_modules/@shadcn/ui"]
+      "@shadcn/ui/*": ["./@shadcn/ui/*"]
     }
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "@shadcn/**/*"]
 }
