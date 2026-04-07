@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { ShapesSidebar } from './ShapeSidebar'
+import { ShapesSidebar } from './components/ShapeSidebar'
 
 import { Button } from "@shadcn/ui/components/ui/button"
+import CodeBlock from './components/CodeBlock'
 
 // Helper to create geometry based on shape name
 const createGeometry = (shape) => {
@@ -24,6 +25,7 @@ const createGeometry = (shape) => {
 const App = () => {
   const [shape, setShape] = useState('cube');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const targetZoomRef = useRef(2);
   const mountRef = useRef(null)
   const meshRef = useRef(null)
@@ -138,7 +140,7 @@ const App = () => {
       cameraRef.current.aspect = width / height
       cameraRef.current.updateProjectionMatrix()
     }
-  }, [sidebarOpen])
+  }, [sidebarOpen, rightSidebarOpen])
 
   // Zoom camera on mouse wheel
   useEffect(() => {
@@ -160,11 +162,16 @@ const App = () => {
 
   return (
     <div style={{ display: 'flex', width: '100%', height: '100%' }}>
-      {sidebarOpen && <div style={{ width: 250, backgroundColor: 'rgba(34,34,34,.8)', color: '#fff', padding: 20, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column' }}><ShapesSidebar shape={shape} setShape={setShape} isOpen={sidebarOpen} onToggle={() => setSidebarOpen(prev => !prev)} /></div>}
-      <div style={{ flex: 1, position: 'relative', backgroundColor: 'rgba(17,17,17,.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
+      {sidebarOpen && <div style={{ width: 250, backgroundColor: 'rgba(34,34,34,.8)', color: '#fff', padding: 20, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column' }}><ShapesSidebar shape={shape} setShape={setShape} /></div>}
+      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', position: 'relative', backgroundColor: 'rgba(17,17,17,.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
         <Button onClick={() => setSidebarOpen(prev => !prev)} style={{ position: 'absolute', top: 10, left: 10, zIndex: 10, color: '#fff', margin: '4px' }}>{sidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}</Button>
+        <Button onClick={() => setRightSidebarOpen(prev => !prev)} style={{ position: 'absolute', bottom: 10, right: 10, zIndex: 10, color: '#fff', margin: '4px' }}>{rightSidebarOpen ? 'Hide Editor' : 'Show Editor'}</Button>
         <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
       </div>
+      {rightSidebarOpen && <div className='flex flex-col align-middle justify-center' style={{ width: 550, backgroundColor: 'rgba(34,34,34,.8)', color: '#fff', padding: 20, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column' }}>
+        <CodeBlock className='my-6' />
+        <CodeBlock className='my-6' />
+      </div>}
     </div>
   )
 }
