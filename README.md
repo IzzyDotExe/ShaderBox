@@ -2,6 +2,9 @@
 
 A web-based 3D environment built with React, Vite, and Three.js. This application allows users to explore and interact with 3D primitives while writing and testing custom GLSL vertex and fragment shaders in real-time.
 
+<img width="1916" height="1088" alt="image" src="https://github.com/user-attachments/assets/7ae155b5-7ffc-474e-864e-a9ec4b893c03" />
+
+
 ## 🚀 Features
 
 - **Interactive 3D Viewport**: Manipulate 3D shapes with mouse controls (drag to rotate, scroll to zoom).
