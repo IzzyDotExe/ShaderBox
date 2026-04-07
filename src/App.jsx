@@ -10,13 +10,18 @@ const createGeometry = (shape) => {
     case 'pyramid':
       // pyramid as cone with 4 sides and small height
       return new THREE.ConeGeometry(0.8, 1.2, 4)
-    default:
+    case 'cube':
       return new THREE.BoxGeometry()
+    case 'square':
+      return new THREE.PlaneGeometry()
+    case 'circle':
+      return new THREE.CircleGeometry()
   }
 }
 
 const App = () => {
-  const [shape, setShape] = useState('cube')
+  const [shape, setShape] = useState('cube');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const mountRef = useRef(null)
   const meshRef = useRef(null)
   const sceneRef = useRef(null)
@@ -116,10 +121,11 @@ const rendererRef = useRef(null)
 
   return (
   <div style={{ position: 'relative', width: '100%', height: '100%', backgroundColor:'rgba(17,17,17,.6)', backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)' }}>
-    <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
-    <div style={{ position:'absolute', top:0, left:0, width:250, height:'100%', backgroundColor:'rgba(34,34,34,.8)', color:'#fff', padding:20, backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)', display:'flex', flexDirection:'column' }}>
-      <ShapesSidebar shape={shape} setShape={setShape} />
-    </div>
+    <button onClick={() => setSidebarOpen(prev => !prev)} style={{position:'absolute', top:10, left: sidebarOpen ? 260 : 10, zIndex:10, color:'#fff', margin:'4px'}}>{sidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}</button>
+      <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
+    {sidebarOpen && <div style={{ position:'absolute', top:0, left:0, width:250, height:'100%', backgroundColor:'rgba(34,34,34,.8)', color:'#fff', padding:20, backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)', display:'flex', flexDirection:'column' }}>
+      <ShapesSidebar shape={shape} setShape={setShape} isOpen={sidebarOpen} onToggle={() => setSidebarOpen(prev=>!prev)} />
+    </div>}
   </div>
 )
 }
