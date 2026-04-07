@@ -1,17 +1,24 @@
 import { useState } from "react"
 import { ArrowElbowDownLeft, FileCode, ArrowsClockwise } from "@phosphor-icons/react"
+import Editor from 'react-simple-code-editor';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-clike';
+import 'prismjs/components/prism-c';
+import 'prismjs/components/prism-glsl';
+import 'prismjs/themes/prism-tomorrow.css';
+
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupText,
-  InputGroupTextarea,
 } from "@shadcn/ui/components/ui/input-group"
 
 interface CodeBlockProps {
   title?: string
   value: string
   onChange: (value: string) => void
+  onRun?: () => void
   className: string
 }
 
@@ -19,13 +26,15 @@ const CodeBlock = ({
   title = "New File.js",
   value,
   onChange,
+  onRun,
   className
 }: CodeBlockProps) => {
   const [cursorPosition, setCursorPosition] = useState({ line: 1, column: 1 })
 
-  const updateCursorPosition = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+  const updateCursorPosition = (e: any) => {
     const target = e.target as HTMLTextAreaElement
-    const textBeforeCursor = target.value.substring(0, target.selectionEnd)
+    if (!target) return;
+    const textBeforeCursor = target.value.substring(0, target.selectionEnd || 0)
     const lines = textBeforeCursor.split("\n")
     setCursorPosition({
       line: lines.length,
@@ -35,20 +44,25 @@ const CodeBlock = ({
 
   return (
     <InputGroup className={`${className || ''} dark w-full bg-background h-full flex-1 flex flex-col`}>
-      <InputGroupTextarea 
-        className="flex-1 min-h-[300px] w-full font-mono resize-none" 
-        placeholder="console.log('Hello, world!');" 
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value)
-          updateCursorPosition(e)
-        }}
-        onClick={updateCursorPosition}
-        onKeyUp={updateCursorPosition}
-      />
+      <div className="flex-1 w-full min-h-[300px] overflow-auto relative rounded-none border-0 bg-transparent py-2 shadow-none ring-0">
+        <Editor
+          value={value}
+          onValueChange={(code) => onChange(code)}
+          highlight={code => Prism.highlight(code, Prism.languages.glsl, 'glsl')}
+          padding={15}
+          className="font-mono text-sm w-full min-h-[300px] text-foreground focus-visible:ring-0"
+          textareaClassName="focus:outline-none"
+          style={{
+            fontFamily: '"JetBrains Mono Variable", monospace',
+            backgroundColor: 'transparent'
+          }}
+          onClick={updateCursorPosition}
+          onKeyUp={updateCursorPosition}
+        />
+      </div>
       <InputGroupAddon align="block-end" className="border-t">
         <InputGroupText>Line {cursorPosition.line}, Column {cursorPosition.column}</InputGroupText>
-        <InputGroupButton className="ml-auto" size="sm" variant="default">
+        <InputGroupButton onClick={onRun} className="ml-auto" size="sm" variant="default">
           Run
           <ArrowElbowDownLeft />
         </InputGroupButton>

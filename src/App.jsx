@@ -22,15 +22,49 @@ const createGeometry = (shape) => {
   }
 }
 
+const defaultVertexShader = `varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+
+const defaultFragmentShader = `varying vec2 vUv;
+void main() {
+  gl_FragColor = vec4(vUv.x, vUv.y, 0.5, 1.0);
+}`;
+
 const App = () => {
   const [shape, setShape] = useState('cube');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
+  const [vertexShader, setVertexShader] = useState(defaultVertexShader);
+  const [fragmentShader, setFragmentShader] = useState(defaultFragmentShader);
+  const [activeMaterial, setActiveMaterial] = useState(() => new THREE.ShaderMaterial({
+    vertexShader: defaultVertexShader,
+    fragmentShader: defaultFragmentShader
+  }));
+
   const targetZoomRef = useRef(2);
   const mountRef = useRef(null)
   const meshRef = useRef(null)
   const sceneRef = useRef(null)
   const rendererRef = useRef(null)
+
+  const handleRunShaders = () => {
+    try {
+      const newMaterial = new THREE.ShaderMaterial({
+        vertexShader,
+        fragmentShader
+      });
+      if (meshRef.current) {
+        meshRef.current.material.dispose();
+        meshRef.current.material = newMaterial;
+        setActiveMaterial(newMaterial);
+      }
+    } catch (e) {
+      console.error("Shader compilation error:", e);
+    }
+  };
 
   // Store camera reference for later re-render
   const cameraRef = useRef(null)
@@ -58,8 +92,7 @@ const App = () => {
 
     sceneRef.current = scene
     const geometry = createGeometry(shape)
-    const material = new THREE.MeshNormalMaterial()
-    const mesh = new THREE.Mesh(geometry, material)
+    const mesh = new THREE.Mesh(geometry, activeMaterial)
     meshRef.current = mesh
     scene.add(mesh)
 
@@ -169,11 +202,23 @@ const App = () => {
         <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
       </div>
       {rightSidebarOpen && <div className='flex flex-col align-middle justify-center' style={{ width: 550, backgroundColor: 'rgba(34,34,34,.8)', color: '#fff', padding: 20, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column' }}>
-        <CodeBlock className='my-6' />
-        <CodeBlock className='my-6' />
+        <CodeBlock 
+          className='my-6' 
+          title="vertexShader.glsl" 
+          value={vertexShader} 
+          onChange={setVertexShader} 
+          onRun={handleRunShaders} 
+        />
+        <CodeBlock 
+          className='my-6' 
+          title="fragmentShader.glsl" 
+          value={fragmentShader} 
+          onChange={setFragmentShader} 
+          onRun={handleRunShaders} 
+        />
       </div>}
     </div>
-  )
+  ) 
 }
 
 export default App
