@@ -18,8 +18,17 @@ Unlike standard React/Vite projects, this project isolates its UI components in 
 │   │   ├── hooks/       # UI related hooks (use-mobile, etc.)
 │   │   └── lib/         # UI utilities (cn, etc.)
 ├── src/                 # Application source code
-│   ├── App.jsx          # Main application logic (Three.js canvas here)
-│   ├── ShapeSidebar.jsx # Sidebar UI wrapper
+│   ├── components/      # Project-specific React components
+│   │   ├── Card.jsx
+│   │   ├── CodeBlock.tsx
+│   │   ├── ShaderEditorSidebar.jsx # Editor panel for GLSL
+│   │   ├── ShapeSidebar.jsx     # Side navigation panel
+│   │   └── ThreeCanvas.jsx      # WebGL encapsulation and 3D rendering
+│   ├── constants/       # Static configuration
+│   │   └── shaders.js   # Default shader strings
+│   ├── utils/           # Helper functions
+│   │   └── geometry.js  # Shape to ThreeJS geometry mapper
+│   ├── App.jsx          # Main application layout and state manager
 │   └── main.jsx         # App entry point
 ├── globals.css          # Main Tailwind v4 CSS and theme variables
 ├── components.json      # shadcn CLI configuration
