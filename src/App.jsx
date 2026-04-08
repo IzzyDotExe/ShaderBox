@@ -81,6 +81,25 @@ const App = () => {
 
   // Drag and rotation state refs
   const targetRot = useRef({ x: 0, y: 0 })
+
+// Handle window resize for viewport
+useEffect(() => {
+  const handleResize = () => {
+    if (rendererRef.current && mountRef.current && cameraRef.current) {
+      const width = mountRef.current.clientWidth;
+      const height = mountRef.current.clientHeight;
+      rendererRef.current.setSize(width, height);
+      cameraRef.current.aspect = width / height;
+      cameraRef.current.updateProjectionMatrix();
+    }
+  };
+  window.addEventListener('resize', handleResize);
+  // Trigger once to set initial size
+  handleResize();
+  return () => {
+    window.removeEventListener('resize', handleResize);
+  };
+}, []);
   const isDraggingRef = useRef(false)
   const prevXRef = useRef(0)
   const prevYRef = useRef(0)
