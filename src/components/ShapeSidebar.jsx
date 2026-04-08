@@ -49,16 +49,21 @@ export const ShapesSidebar = ({ shape, setShape, isOpen, onToggle, children}) =>
                         <SidebarMenuSubButton
                           isActive={shape === s.id}
                           onClick={() => setShape(s.id)}
-                          className={shape === s.id ? 'bg-accent' : ''}
+                          className={`h-auto py-2 ${shape === s.id ? 'bg-accent' : ''}`}
                         >
-                          {s.id === 'cube' && <CubeIcon size={16} className='mr-2' />}
-                          {s.id === 'sphere' && <SphereIcon size={16} className='mr-2' />}
-                          {s.id === 'pyramid' && <TriangleIcon size={16} className='mr-2' />}
-                          {s.id === 'torus' && <CircleDashedIcon size={16} className='mr-2' />}
-                          {s.id === 'cylinder' && <CylinderIcon size={16} className='mr-2' />}
-                          {s.id === 'cone' && <TrafficConeIcon size={16} className='mr-2' />}
-                          {s.id === 'icosahedron' && <HexagonIcon size={16} className='mr-2' />}
-                          <span>{s.label}</span>
+                          <div className="flex items-center justify-center mt-0.5 shrink-0 w-4 h-4 mr-2">
+                            {s.id === 'cube' && <CubeIcon size={16} />}
+                            {s.id === 'sphere' && <SphereIcon size={16} />}
+                            {s.id === 'pyramid' && <TriangleIcon size={16} />}
+                            {s.id === 'torus' && <CircleDashedIcon size={16} />}
+                            {s.id === 'cylinder' && <CylinderIcon size={16} />}
+                            {s.id === 'cone' && <TrafficConeIcon size={16} />}
+                            {s.id === 'icosahedron' && <HexagonIcon size={16} />}
+                          </div>
+                          <div className="flex flex-col items-start">
+                            <span>{s.label}</span>
+                            <span className="text-[10px] text-muted-foreground leading-tight">{s.description}</span>
+                          </div>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}
@@ -82,12 +87,17 @@ export const ShapesSidebar = ({ shape, setShape, isOpen, onToggle, children}) =>
                         <SidebarMenuSubButton
                           isActive={shape === s.id}
                           onClick={() => setShape(s.id)}
-                          className={shape === s.id ? 'bg-accent' : ''}
+                          className={`h-auto py-2 ${shape === s.id ? 'bg-accent' : ''}`}
                         >
-                          {s.id === 'square' && <SquareIcon size={16} className='mr-2' />}
-                          {s.id === 'circle' && <CircleIcon size={16} className='mr-2' />}
-                          {s.id === 'ring' && <CircleDashedIcon size={16} className='mr-2' />}
-                          <span>{s.label}</span>
+                          <div className="flex items-center justify-center mt-0.5 shrink-0 w-4 h-4 mr-2">
+                            {s.id === 'square' && <SquareIcon size={16} />}
+                            {s.id === 'circle' && <CircleIcon size={16} />}
+                            {s.id === 'ring' && <CircleDashedIcon size={16} />}
+                          </div>
+                          <div className="flex flex-col items-start">
+                            <span>{s.label}</span>
+                            <span className="text-[10px] text-muted-foreground leading-tight">{s.description}</span>
+                          </div>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}

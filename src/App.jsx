@@ -56,39 +56,7 @@ const App = () => {
     <div style={{ display: 'flex', width: '100%', height: '100%' }}>
       {sidebarOpen && (
         <div style={{ width: 250, backgroundColor: 'rgba(34,34,34,.8)', color: '#fff', padding: 20, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column' }}>
-          <MainSideba          uniform vec3 uLightDirection;
-          uniform vec3 uLightColor;
-          
-          varying vec3 vNormal;
-          
-          void main() {
-              // Normalize the normal vector and light direction
-              vec3 normal = normalize(vNormal);
-              vec3 lightDir = normalize(uLightDirection);
-              
-              // Calculate basic diffuse intensity (Lambertian)
-              float intensity = dot(normal, lightDir);
-              
-              // Discretize the intensity into distinct bands for the cel/toon effect
-              float toonIntensity;
-              if (intensity > 0.95) {
-                  toonIntensity = 1.0;
-              } else if (intensity > 0.5) {
-                  toonIntensity = 0.7;
-              } else if (intensity > 0.25) {
-                  toonIntensity = 0.4;
-              } else {
-                  toonIntensity = 0.2; // Shadow threshold
-              }
-              
-              // Define the base color of the object
-              vec3 baseColor = vec3(0.2, 0.6, 1.0); // Light blue
-              
-              // Combine base color, toon lighting, and the uniform light color
-              vec3 finalColor = baseColor * toonIntensity * uLightColor;
-              
-              gl_FragColor = vec4(finalColor, 1.0);
-          }r>
+          <MainSidebar>
             <SettingsSidebar bgColor={bgColor} setBgColor={setBgColor} />
             <ShapesSidebar shape={shape} setShape={setShape} />
             <UniformsSidebar
