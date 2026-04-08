@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { ThreeEngine } from '../utils/ThreeEngine';
 
-const useThree = ({ mountRef, shape, vertexShader, fragmentShader }) => {
+const useThree = ({ mountRef, shape, vertexShader, fragmentShader, onError }) => {
   const engineRef = useRef(null);
 
   // Scene initialization
@@ -12,7 +12,8 @@ const useThree = ({ mountRef, shape, vertexShader, fragmentShader }) => {
       mountRef.current, 
       shape, 
       vertexShader, 
-      fragmentShader
+      fragmentShader,
+      onError
     );
     
     return () => {

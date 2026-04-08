@@ -3,8 +3,9 @@ import { createGeometry } from './geometry';
 import { ThreeControls } from './ThreeControls';
 
 export class ThreeEngine {
-  constructor(container, shape, vertexShader, fragmentShader) {
+  constructor(container, shape, vertexShader, fragmentShader, onError) {
     this.container = container;
+    this.onError = onError || console.error;
     this.vertexShader = vertexShader;
     this.fragmentShader = fragmentShader;
 
@@ -46,7 +47,18 @@ export class ThreeEngine {
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setSize(width, height);
+    this.renderer.debug.checkShaderErrors = true; // Enables WebGL error parsing in console
     this.container.appendChild(this.renderer.domElement);
+
+    // Ensure we permanently listen to shader errors just in case they slip by the compile try blocks
+    this.originalConsoleError = console.error;
+    console.error = (...args) => {
+      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      if (msg.includes('ERROR:') || msg.includes('THREE.WebGLProgram')) {
+        if (this.onError) this.onError(msg);
+      }
+      this.originalConsoleError.apply(console, args);
+    };
 
     const material = new THREE.ShaderMaterial({
       vertexShader: this.vertexShader,
@@ -54,9 +66,30 @@ export class ThreeEngine {
       uniforms: this.uniforms
     });
     
+    let caughtInitError = null;
+    const originalConsoleError = console.error;
+    console.error = (...args) => {
+      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      if (msg.includes('ERROR:') || msg.includes('THREE.WebGLProgram')) {
+        caughtInitError = msg;
+      }
+      originalConsoleError.apply(console, args);
+    };
+
     const geometry = createGeometry(shape);
     this.mesh = new THREE.Mesh(geometry, material);
     this.scene.add(this.mesh);
+
+    try {
+      this.renderer.compile(this.scene, this.camera);
+      if (caughtInitError) {
+        if (this.onError) this.onError(caughtInitError);
+      }
+    } catch (e) {
+      if (this.onError) this.onError(e.message || String(e));
+    } finally {
+      console.error = originalConsoleError;
+    }
   }
 
   handleResize = () => {
@@ -106,20 +139,52 @@ export class ThreeEngine {
     this.vertexShader = vertexShader;
     this.fragmentShader = fragmentShader;
     if (!this.mesh) return;
+
+    // We need to temporarily assign the new material to the mesh to compile it properly
+    const oldMaterial = this.mesh.material;
+    
+    // Monkey-patch console.error to intercept Three.js shader compilation logs
+    const originalConsoleError = console.error;
+    let caughtError = null;
+    console.error = (...args) => {
+      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      if (msg.includes('ERROR:') || msg.includes('THREE.WebGLProgram')) {
+        caughtError = msg;
+      }
+      originalConsoleError.apply(console, args);
+    };
+
     try {
       const newMaterial = new THREE.ShaderMaterial({
         vertexShader: this.vertexShader,
         fragmentShader: this.fragmentShader,
         uniforms: this.uniforms
       });
-      this.mesh.material.dispose();
       this.mesh.material = newMaterial;
+      
+      // Pre-compile the material so the WebGL Program connects immediately
+      this.renderer.compile(this.scene, this.camera);
+
+      if (caughtError) {
+        if (this.onError) this.onError(caughtError);
+        // Rollback on error
+        this.mesh.material = oldMaterial;
+        newMaterial.dispose();
+      } else {
+        // Success
+        oldMaterial.dispose();
+      }
     } catch (e) {
-      console.error('Shader compilation error:', e);
+      if (this.onError) this.onError(e.message || String(e));
+      this.mesh.material = oldMaterial;
+    } finally {
+      // Restore console.error
+      console.error = originalConsoleError;
     }
   }
 
   dispose() {
+    console.error = this.originalConsoleError || console.error;
     cancelAnimationFrame(this.animId);
     
     if (this.controls) {
