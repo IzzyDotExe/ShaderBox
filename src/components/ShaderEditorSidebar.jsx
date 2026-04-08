@@ -6,6 +6,7 @@ const ShaderEditorSidebar = ({
   setVertexShader,
   fragmentShader,
   setFragmentShader,
+  onResetShaders,
   onRunShaders
 }) => {
   return (
@@ -16,6 +17,7 @@ const ShaderEditorSidebar = ({
         value={vertexShader} 
         onChange={setVertexShader} 
         onRun={onRunShaders} 
+        onReset={onResetShaders}
       />
       <CodeBlock 
         className='my-6' 
@@ -23,6 +25,7 @@ const ShaderEditorSidebar = ({
         value={fragmentShader} 
         onChange={setFragmentShader} 
         onRun={onRunShaders} 
+        onReset={onResetShaders}
       />
     </div>
   )

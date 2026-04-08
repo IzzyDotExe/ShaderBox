@@ -19,6 +19,7 @@ interface CodeBlockProps {
   value: string
   onChange: (value: string) => void
   onRun?: () => void
+  onReset?: () => void
   className: string
 }
 
@@ -26,6 +27,7 @@ const CodeBlock = ({
   title = "New File.js",
   value,
   onChange,
+  onReset,
   onRun,
   className
 }: CodeBlockProps) => {
@@ -72,7 +74,7 @@ const CodeBlock = ({
           <FileCode />
           {title}
         </InputGroupText>
-        <InputGroupButton className="ml-auto" size="icon-xs">
+        <InputGroupButton onClick={onReset} className="ml-auto" size="icon-xs">
           <ArrowsClockwise />
         </InputGroupButton>
       </InputGroupAddon>
