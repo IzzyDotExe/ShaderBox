@@ -101,6 +101,11 @@ const ThreeCanvas = ({ shape, vertexShader, fragmentShader }) => {
             el.style.cursor = 'grabbing'
         }
         const onPointerMove = (e) => {
+            const rect = el.getBoundingClientRect();
+            // Update uMouse uniform (normalized coordinates 0 to 1, commonly used for WebGL)
+            uniformsRef.current.uMouse.value.x = (e.clientX - rect.left) / rect.width;
+            uniformsRef.current.uMouse.value.y = 1.0 - ((e.clientY - rect.top) / rect.height); // Inverted Y for shader context
+
             if (!isDraggingRef.current || !meshRef.current) return
             const deltaX = e.clientX - prevXRef.current
             const deltaY = e.clientY - prevYRef.current
