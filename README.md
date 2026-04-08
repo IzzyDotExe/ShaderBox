@@ -52,8 +52,18 @@ You can open the "Editor" sidebar to inject custom shaders into the active mater
 **Available Uniforms:**
 - `uniform float uTime;` – The elapsed time in seconds. Use this to animate vertices or fragment colors.
 
+-- `uniform vec2 uResolution;` – Current viewport resolution (width, height).
+- - `uniform vec2 uMouse;` – Normalized mouse position relative to the canvas (x: 0‑1, y: 0‑1). Updated on pointer move.
+- - `uniform float uDelta;` – Time difference between frames in seconds.
+- - `uniform mat4 uViewMatrix;` – Current camera view matrix.
+- - `uniform mat4 uProjectionMatrix;` – Camera projection matrix.
+- - `uniform mat3 uNormalMatrix;` – Normal matrix for transforming normals into eye space.
+- - `uniform vec3 uLightDirection;` – Direction of a single directional light.
+- - `uniform vec3 uLightColor;` – Color/intensity of the light.
+- - `uniform vec3 uCameraPosition;` – World position of the camera.
+
 **Available Varying Data (Passed by Three.js standard geometries):**
-- `varying vec2 vUv;` – UV coordinates. Unpack these to apply textures or gradient logic across meshes.
+  - `varying vec2 vUv;` – UV coordinates. Unpack these to apply textures or gradient logic across meshes.
 
 ### Default Example
 
