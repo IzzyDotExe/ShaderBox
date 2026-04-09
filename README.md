@@ -1,5 +1,7 @@
 # 🌌 Live WebGL Shader Playground
 
+[Try it out live!](https://shaderbox.izzydotexe.ca/)
+
 A web-based 3D environment and GLSL IDE built with React, Vite, and Three.js. This application allows users to explore and interact with 3D primitives while writing, testing, and debugging custom GLSL vertex and fragment shaders in real-time.
 
 <img width="2374" height="1439" alt="image" src="https://github.com/user-attachments/assets/1fbf52ba-0dcd-4d77-b1d7-447ea3eb629e" />
