@@ -1,32 +1,34 @@
-# React 3D Cube & Shader Playground
+# 🌌 Live WebGL Shader Playground
 
-A web-based 3D environment built with React, Vite, and Three.js. This application allows users to explore and interact with 3D primitives while writing and testing custom GLSL vertex and fragment shaders in real-time.
+A web-based 3D environment and GLSL IDE built with React, Vite, and Three.js. This application allows users to explore and interact with 3D primitives while writing, testing, and debugging custom GLSL vertex and fragment shaders in real-time.
 
 <img width="1916" height="1088" alt="image" src="https://github.com/user-attachments/assets/7ae155b5-7ffc-474e-864e-a9ec4b893c03" />
 
-Also an experiement with local LLMs. Most the code is written by GPT-OSS-20b and gemma4 using opencode and lmStudio on an RTX 5060TI 16gb
-
 ## 🚀 Features
 
-- **Interactive 3D Viewport**: Manipulate 3D shapes with mouse controls (drag to rotate, scroll to zoom).
-- **Primitive Shapes**: Switch between Cube, Sphere, Pyramid, Square (Plane), and Circle geometries using the left sidebar.
-- **Live Shader Editing**: Write raw GLSL in the built-in IDE (right sidebar) featuring syntax highlighting via PrismJS.
-- **Dynamic Uniforms**: Time-based animations are readily available via the `uTime` float uniform injected automatically into your shaders.
-- **Modern UI**: Polished interface components powered by shadcn/ui and styled with Tailwind CSS v4.
+- **Interactive 3D Viewport**: Manipulate 3D shapes with dragging, orbiting, and scrolling using custom Three.js controls.
+- **Live Shader Editor**: Write raw GLSL in the built-in IDE (right sidebar) featuring syntax highlighting via PrismJS and a live compilation loop. Error handling natively catches WebGL compile errors and displays them smoothly.
+- **Dynamic Uniforms Manager**: Inject your own variables into your shaders directly from the UI!
+  - **Built-in Uniforms**: Easily inject standard variables like `uTime`, `uResolution`, `uMouse`, `uCameraPosition`, `uRotation`, and lighting vectors.
+  - **Static Custom Uniforms**: Create custom `float`, `vec2`, `vec3`, or `vec4` uniforms with static values.
+  - **Animated JavaScript Uniforms**: Create a custom uniform and assign it a live JavaScript function! Evaluate values per-frame using an embedded JS code editor (`return Math.sin(time)`) and watch the values pass instantly into the shader via `requestAnimationFrame`.
+- **Primitive Shapes**: Switch between Cube, Sphere, Pyramid, Square (Plane), and Ring geometries.
+- **State Persistence**: Your custom uniforms, shaders, chosen shape, and background settings automatically save to `localStorage` and persist through reloads.
+- **Modern UI**: Polished interface components powered by shadcn/ui and styled natively with Tailwind CSS v4.
 
 ## 🛠️ Tech Stack
 
 - **Framework**: React 18
 - **Build Tool**: Vite
-- **3D Library**: Three.js
+- **3D Render Engine**: Three.js
 - **UI Components**: shadcn/ui (isolated in the `@shadcn` root directory)
 - **Styling**: Tailwind CSS v4
 - **Icons**: Phosphor Icons
-- **Code Editor**: `react-simple-code-editor` + `prismjs` for GLSL syntax highlighting
+- **Code Editor**: `react-simple-code-editor` + `PrismJS` for GLSL and JS syntax highlighting
 
 ## 📦 Project Structure & Setup
 
-This repository uses a customized layout where the `shadcn/ui` components are stored at the root `@shadcn` directory instead of standard integration into `src/`. For a comprehensive view of how to configure components, paths, and styles, refer to the [AI_REFERENCE_GUIDE.md](./AI_REFERENCE_GUIDE.md) provided in the root folder.
+This repository uses a customized layout where the `shadcn/ui` components are stored at the root `@shadcn` directory instead of standard integration into `src/`. For a comprehensive view of how to configure components, paths, and styles, refer to the [AGENTS.md](./AGENTS.md) guide provided in the root folder.
 
 ## 🏃 Getting Started
 
@@ -47,45 +49,28 @@ This repository uses a customized layout where the `shadcn/ui` components are st
 
 ## 🎨 Writing Shaders
 
-You can open the "Editor" sidebar to inject custom shaders into the active material.
+You can open the "Editor" sidebar on the right to edit the vertex and fragment shaders.
 
-**Available Uniforms:**
-- `uniform float uTime;` – The elapsed time in seconds. Use this to animate vertices or fragment colors.
+**Available Built-in Uniforms:**
+- `uniform float uTime;` – Elapsed time in seconds.
+- `uniform vec2 uResolution;` – Viewport resolution (width, height).
+- `uniform vec2 uMouse;` – Mouse position on the canvas.
+- `uniform float uDelta;` – Time difference between frames.
+- `uniform mat4 uViewMatrix;` – Current camera view matrix.
+- `uniform mat4 uProjectionMatrix;` – Camera projection matrix.
+- `uniform mat3 uNormalMatrix;` – Normal matrix for transforming normals into eye space.
+- `uniform vec3 uLightDirection;` – Direction of a single directional light.
+- `uniform vec3 uLightColor;` – Color/intensity of the light.
+- `uniform vec3 uCameraPosition;` – World position of the camera.
+- `uniform vec3 uRotation;` – The real-time X, Y, Z Euler rotation angles of the 3D mesh.
 
--- `uniform vec2 uResolution;` – Current viewport resolution (width, height).
-- - `uniform vec2 uMouse;` – Normalized mouse position relative to the canvas (x: 0‑1, y: 0‑1). Updated on pointer move.
-- - `uniform float uDelta;` – Time difference between frames in seconds.
-- - `uniform mat4 uViewMatrix;` – Current camera view matrix.
-- - `uniform mat4 uProjectionMatrix;` – Camera projection matrix.
-- - `uniform mat3 uNormalMatrix;` – Normal matrix for transforming normals into eye space.
-- - `uniform vec3 uLightDirection;` – Direction of a single directional light.
-- - `uniform vec3 uLightColor;` – Color/intensity of the light.
-- - `uniform vec3 uCameraPosition;` – World position of the camera.
+**Creating Custom Uniforms:**
+1. Open the "Uniforms" sidebar on the left.
+2. Under "Custom", add a Name (e.g., `uColor`), select a Type (e.g., `vec3`), and toggle **Animated**.
+3. If animated, click **"Write JS Body"** to open a modal where you can write a JavaScript function that evaluates every frame (e.g., `return [Math.sin(time), 0.5, 1.0];`).
+4. Inject your new uniform into the shader code and use it!
 
-**Available Varying Data (Passed by Three.js standard geometries):**
-  - `varying vec2 vUv;` – UV coordinates. Unpack these to apply textures or gradient logic across meshes.
-
-### Default Example
-
-**Vertex Shader:**
-```glsl
-uniform float uTime;
-varying vec2 vUv;
-
-void main() {
-  vUv = uv;
-  vec3 pos = position;
-  pos.z += sin(pos.x * 5.0 + uTime) * 0.1;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-}
-```
-
-**Fragment Shader:**
-```glsl
-uniform float uTime;
-varying vec2 vUv;
-
-void main() {
-  gl_FragColor = vec4(vUv.x, vUv.y, (sin(uTime) + 1.0) / 2.0, 1.0);
-}
-```
+**Available Varying Data (Passed by Three.js):**
+- `varying vec2 vUv;` – UV coordinates (passed from the vertex shader).
+- `varying vec3 vNormal;` – Normals (passed from the vertex shader).
+- `varying vec3 vWorldPosition;` / `vLocalPosition;` – Positions (calculated during transformations).
