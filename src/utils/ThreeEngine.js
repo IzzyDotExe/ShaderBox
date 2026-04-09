@@ -3,11 +3,12 @@ import { createGeometry } from './geometry';
 import { ThreeControls } from './ThreeControls';
 
 export class ThreeEngine {
-  constructor(container, shape, vertexShader, fragmentShader, onError) {
+  constructor(container, shape, vertexShader, fragmentShader, onError, customUniforms = []) {
     this.container = container;
     this.onError = onError || console.error;
     this.vertexShader = vertexShader;
     this.fragmentShader = fragmentShader;
+    this.initialCustomUniforms = customUniforms;
 
     this.uniforms = {
       uTime: { value: 0 },
@@ -19,10 +20,18 @@ export class ThreeEngine {
       uNormalMatrix: { value: new THREE.Matrix3() },
       uLightDirection: { value: new THREE.Vector3(0, 0, -1) },
       uLightColor: { value: new THREE.Color(1, 1, 1) },
-      uCameraPosition: { value: new THREE.Vector3() }
+      uCameraPosition: { value: new THREE.Vector3() },
+      uRotation: { value: new THREE.Vector3() }
     };
+    
+    this.animatedUniforms = [];
+
+    (this.initialCustomUniforms || []).forEach(cu => {
+      this._setupCustomUniform(cu);
+    });
 
     this.init(shape);
+    window.__threeEngine = this;
     
     // Abstracted interaction logic into dedicated controller
     this.controls = new ThreeControls(this.container, this.renderer.domElement, this.uniforms);
@@ -103,14 +112,34 @@ export class ThreeEngine {
 
   animate = () => {
     const elapsedTime = this.clock.getElapsedTime();
+    const delta = this.clock.getDelta();
+
     this.uniforms.uTime.value = elapsedTime;
-    this.uniforms.uDelta.value = this.clock.getDelta();
+    this.uniforms.uDelta.value = delta;
 
     if (this.container) {
       this.uniforms.uResolution.value.set(this.container.clientWidth, this.container.clientHeight);
     }
 
+    this.animatedUniforms.forEach(au => {
+      try {
+        const result = au.fn(elapsedTime, delta, this.uniforms.uMouse.value, this.uniforms.uResolution.value);
+        if (result !== undefined) {
+          if (au.type === 'float') {
+            this.uniforms[au.name].value = Number(result);
+          } else if (Array.isArray(result)) {
+            if (au.type === 'vec2') this.uniforms[au.name].value.set(result[0] || 0, result[1] || 0);
+            else if (au.type === 'vec3') this.uniforms[au.name].value.set(result[0] || 0, result[1] || 0, result[2] || 0);
+            else if (au.type === 'vec4') this.uniforms[au.name].value.set(result[0] || 0, result[1] || 0, result[2] || 0, result[3] || 0);
+          }
+        }
+      } catch (e) {
+        // Silently fail on runtime errors for now
+      }
+    });
+
     if (this.mesh && this.camera) {
+      this.uniforms.uRotation.value.set(this.mesh.rotation.x, this.mesh.rotation.y, this.mesh.rotation.z);
       this.controls.update(this.mesh, this.camera);
     }
 
@@ -133,6 +162,48 @@ export class ThreeEngine {
     const newGeom = createGeometry(shape);
     this.mesh.geometry.dispose();
     this.mesh.geometry = newGeom;
+  }
+
+  _setupCustomUniform(cu) {
+    if (cu.isAnimated) {
+      try {
+        const fn = new Function('time', 'delta', 'mouse', 'resolution', cu.value);
+        this.animatedUniforms.push({ name: cu.name, type: cu.type, fn });
+        if (!this.uniforms[cu.name]) {
+          let val;
+          if (cu.type === 'float') val = 0;
+          else if (cu.type === 'vec2') val = new THREE.Vector2();
+          else if (cu.type === 'vec3') val = new THREE.Vector3();
+          else if (cu.type === 'vec4') val = new THREE.Vector4();
+          this.uniforms[cu.name] = { value: val };
+        }
+      } catch (e) {
+        console.error(`Failed to compile script for uniform ${cu.name}`, e);
+      }
+    } else {
+      let val;
+      const parts = String(cu.value).split(',').map(v => parseFloat(v));
+      if (cu.type === 'float') val = parts[0] || 0;
+      else if (cu.type === 'vec2') val = new THREE.Vector2(parts[0]||0, parts[1]||0);
+      else if (cu.type === 'vec3') val = new THREE.Vector3(parts[0]||0, parts[1]||0, parts[2]||0);
+      else if (cu.type === 'vec4') val = new THREE.Vector4(parts[0]||0, parts[1]||0, parts[2]||0, parts[3]||0);
+      
+      if (!this.uniforms[cu.name]) {
+        this.uniforms[cu.name] = { value: val };
+      } else {
+        this.uniforms[cu.name].value = val;
+      }
+    }
+  }
+
+  updateCustomUniforms(customUniforms) {
+    if (!this.mesh) return;
+    
+    this.animatedUniforms = [];
+    (customUniforms || []).forEach(cu => this._setupCustomUniform(cu));
+    
+    // In case new uniforms were added to the material, we flag for update.
+    this.mesh.material.needsUpdate = true;
   }
 
   updateShaders(vertexShader, fragmentShader) {
@@ -184,6 +255,9 @@ export class ThreeEngine {
   }
 
   dispose() {
+    if (window.__threeEngine === this) {
+      window.__threeEngine = null;
+    }
     console.error = this.originalConsoleError || console.error;
     cancelAnimationFrame(this.animId);
     

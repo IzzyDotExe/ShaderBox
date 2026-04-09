@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { ThreeEngine } from '../utils/ThreeEngine';
 
-const useThree = ({ mountRef, shape, vertexShader, fragmentShader, onError }) => {
+const useThree = ({ mountRef, shape, vertexShader, fragmentShader, onError, customUniforms }) => {
   const engineRef = useRef(null);
 
   // Scene initialization
@@ -13,7 +13,8 @@ const useThree = ({ mountRef, shape, vertexShader, fragmentShader, onError }) =>
       shape, 
       vertexShader, 
       fragmentShader,
-      onError
+      onError,
+      customUniforms
     );
     
     return () => {
@@ -36,6 +37,13 @@ const useThree = ({ mountRef, shape, vertexShader, fragmentShader, onError }) =>
       engineRef.current.updateShape(shape);
     }
   }, [shape]);
+
+  // Custom uniforms updates
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.updateCustomUniforms(customUniforms);
+    }
+  }, [customUniforms]);
 };
 
 export default useThree;

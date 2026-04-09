@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from "@shadcn/ui/components/ui/dialog";
 
-const ThreeCanvas = ({ shape, vertexShader, fragmentShader }) => {
+const ThreeCanvas = ({ shape, vertexShader, fragmentShader, customUniforms }) => {
   const mountRef = useRef(null);
   const [fullError, setFullError] = useState(null);
   
@@ -29,7 +29,8 @@ const ThreeCanvas = ({ shape, vertexShader, fragmentShader }) => {
     shape, 
     vertexShader, 
     fragmentShader,
-    onError: handleShaderError 
+    onError: handleShaderError,
+    customUniforms
   });
   
   return (

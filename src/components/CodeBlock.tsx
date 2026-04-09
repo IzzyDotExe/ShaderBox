@@ -45,14 +45,25 @@ const CodeBlock = ({
   }
 
   return (
-    <InputGroup className={`${className || ''} dark w-full bg-background h-full flex-1 flex flex-col`}>
-      <div className="flex-1 w-full min-h-[300px] overflow-auto relative rounded-none border-0 bg-transparent py-2 shadow-none ring-0">
+    <InputGroup className={`${className || ''} dark w-full bg-background !h-full flex flex-col`}>
+      <InputGroupAddon align="block-start" className="border-b shrink-0 bg-background z-10 w-full">
+        <InputGroupText className="font-medium font-mono">
+          <FileCode />
+          {title}
+        </InputGroupText>
+        {onReset && (
+          <InputGroupButton onClick={onReset} className="ml-auto" size="icon-xs">
+            <ArrowsClockwise />
+          </InputGroupButton>
+        )}
+      </InputGroupAddon>
+      <div className="flex-1 w-full min-h-0 overflow-y-auto relative rounded-none border-0 bg-transparent py-2 shadow-none ring-0">
         <Editor
           value={value}
           onValueChange={(code) => onChange(code)}
           highlight={code => Prism.highlight(code, Prism.languages.glsl, 'glsl')}
           padding={15}
-          className="font-mono text-sm w-full min-h-[300px] text-foreground focus-visible:ring-0"
+          className="font-mono text-sm w-full min-h-full text-foreground focus-visible:ring-0"
           textareaClassName="focus:outline-none"
           style={{
             fontFamily: '"JetBrains Mono Variable", monospace',
@@ -62,21 +73,14 @@ const CodeBlock = ({
           onKeyUp={updateCursorPosition}
         />
       </div>
-      <InputGroupAddon align="block-end" className="border-t">
+      <InputGroupAddon align="block-end" className="border-t shrink-0 bg-background z-10 w-full">
         <InputGroupText>Line {cursorPosition.line}, Column {cursorPosition.column}</InputGroupText>
-        <InputGroupButton onClick={onRun} className="ml-auto" size="sm" variant="default">
-          Run
-          <ArrowElbowDownLeft />
-        </InputGroupButton>
-      </InputGroupAddon>
-      <InputGroupAddon align="block-start" className="border-b">
-        <InputGroupText className="font-medium font-mono">
-          <FileCode />
-          {title}
-        </InputGroupText>
-        <InputGroupButton onClick={onReset} className="ml-auto" size="icon-xs">
-          <ArrowsClockwise />
-        </InputGroupButton>
+        {onRun && (
+          <InputGroupButton onClick={onRun} className="ml-auto" size="sm" variant="default">
+            Run
+            <ArrowElbowDownLeft />
+          </InputGroupButton>
+        )}
       </InputGroupAddon>
     </InputGroup>
   )

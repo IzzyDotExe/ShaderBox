@@ -27,6 +27,11 @@ const App = () => {
   const [activeVertexShader, setActiveVertexShader] = useState(defaultVertexShader);
   const [activeFragmentShader, setActiveFragmentShader] = useState(defaultFragmentShader);
  
+  const [customUniforms, setCustomUniforms] = useState(() => {
+    const saved = localStorage.getItem('customUniforms');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const handleRunShaders = () => {
     setActiveVertexShader(editorVertexShader);
     setActiveFragmentShader(editorFragmentShader);
@@ -36,6 +41,10 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem('shape', shape);
   }, [shape]);
+
+  useEffect(() => {
+    localStorage.setItem('customUniforms', JSON.stringify(customUniforms));
+  }, [customUniforms]);
 
   useEffect(() => {
     localStorage.setItem('vertexShader', editorVertexShader);
@@ -62,6 +71,8 @@ const App = () => {
             <UniformsSidebar
               setVertexShader={setEditorVertexShader}
               setFragmentShader={setEditorFragmentShader}
+              customUniforms={customUniforms}
+              setCustomUniforms={setCustomUniforms}
             />
           </MainSidebar>
         </div>
@@ -85,6 +96,7 @@ const App = () => {
           shape={shape} 
           vertexShader={activeVertexShader} 
           fragmentShader={activeFragmentShader} 
+          customUniforms={customUniforms}
         />
       </div>
  
