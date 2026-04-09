@@ -125,16 +125,27 @@ export class ThreeEngine {
       try {
         const result = au.fn(elapsedTime, delta, this.uniforms.uMouse.value, this.uniforms.uResolution.value);
         if (result !== undefined) {
-          if (au.type === 'float') {
-            this.uniforms[au.name].value = Number(result);
-          } else if (Array.isArray(result)) {
-            if (au.type === 'vec2') this.uniforms[au.name].value.set(result[0] || 0, result[1] || 0);
-            else if (au.type === 'vec3') this.uniforms[au.name].value.set(result[0] || 0, result[1] || 0, result[2] || 0);
-            else if (au.type === 'vec4') this.uniforms[au.name].value.set(result[0] || 0, result[1] || 0, result[2] || 0, result[3] || 0);
+          if (typeof result === 'number') {
+             this.uniforms[au.name].value = result;
+          } else if (Array.isArray(result) || result.isVector2 || result.isVector3 || result.isVector4) {
+             const x = result.x !== undefined ? result.x : (result[0] || 0);
+             const y = result.y !== undefined ? result.y : (result[1] || 0);
+             const z = result.z !== undefined ? result.z : (result[2] || 0);
+             const w = result.w !== undefined ? result.w : (result[3] || 0);
+             if (au.type === 'vec2') this.uniforms[au.name].value.set(x, y);
+             else if (au.type === 'vec3') this.uniforms[au.name].value.set(x, y, z);
+             else if (au.type === 'vec4') this.uniforms[au.name].value.set(x, y, z, w);
           }
         }
+        if (window.__threeEngine) {
+          if (!window.__threeEngine.uniformErrors) window.__threeEngine.uniformErrors = {};
+          window.__threeEngine.uniformErrors[au.name] = null;
+        }
       } catch (e) {
-        // Silently fail on runtime errors for now
+        if (window.__threeEngine) {
+          if (!window.__threeEngine.uniformErrors) window.__threeEngine.uniformErrors = {};
+          window.__threeEngine.uniformErrors[au.name] = e.message;
+        }
       }
     });
 
@@ -165,6 +176,17 @@ export class ThreeEngine {
   }
 
   _setupCustomUniform(cu) {
+    if (!window.__threeEngine) window.__threeEngine = this;
+    if (!window.__threeEngine.uniformErrors) window.__threeEngine.uniformErrors = {};
+
+    if (cu.type === 'sampler2D') {
+      const texture = new THREE.TextureLoader().load(cu.value || 'https://threejs.org/examples/textures/uv_grid_opengl.jpg');
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      this.uniforms[cu.name] = { value: texture };
+      return;
+    }
+
     if (cu.isAnimated) {
       try {
         const fn = new Function('time', 'delta', 'mouse', 'resolution', cu.value);
@@ -177,7 +199,9 @@ export class ThreeEngine {
           else if (cu.type === 'vec4') val = new THREE.Vector4();
           this.uniforms[cu.name] = { value: val };
         }
+        window.__threeEngine.uniformErrors[cu.name] = null;
       } catch (e) {
+        window.__threeEngine.uniformErrors[cu.name] = "Compile Error: " + e.message;
         console.error(`Failed to compile script for uniform ${cu.name}`, e);
       }
     } else {

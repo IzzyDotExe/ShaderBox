@@ -31,18 +31,34 @@ export const AddUniformForm = ({
             <option value="vec2">vec2</option>
             <option value="vec3">vec3</option>
             <option value="vec4">vec4</option>
+            <option value="sampler2D">sampler2D (Texture)</option>
           </select>
           <label className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
             <input 
               type="checkbox" 
               checked={isAnimated} 
+              disabled={newUType === 'sampler2D'}
               onChange={e => setIsAnimated(e.target.checked)} 
-              className="accent-white" 
+              className="accent-white disabled:opacity-50" 
             />
             Animated
           </label>
         </div>
-        {isAnimated ? (
+        {newUType === 'sampler2D' ? (
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={e => {
+              const file = e.target.files[0];
+              if (file) {
+                 const reader = new FileReader();
+                 reader.onload = (ev) => setNewUValue(ev.target.result);
+                 reader.readAsDataURL(file);
+              }
+            }}
+            className="dark h-8 text-xs flex-1 bg-black/20 border-white/10 file:text-white file:text-xs"
+          />
+        ) : isAnimated ? (
           <Button
             variant="outline"
             onClick={() => setEditDialog({ isNew: true, value: newUValue })}

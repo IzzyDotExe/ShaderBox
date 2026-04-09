@@ -108,7 +108,9 @@ export const UniformsSidebar = ({ setVertexShader, setFragmentShader, customUnif
                       className="hover:bg-accent flex-1 flex-col items-start gap-0 h-auto py-1 justify-center"
                     >
                       <span className="truncate w-full text-left">{u.name} <span className="opacity-50 text-[10px]">({u.type})</span></span>
-                      <LiveUniformValue uniform={u} />
+                      <LiveUniformValue uniform={u} onUniformUpdate={(name, val) => {
+                         setCustomUniforms(prev => prev.map(cu => cu.name === name ? { ...cu, value: String(val) } : cu));
+                      }} />
                     </SidebarMenuSubButton>
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                       {u.isAnimated && (
