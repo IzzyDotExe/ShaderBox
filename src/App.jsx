@@ -9,6 +9,8 @@ import { Button } from "@shadcn/ui/components/ui/button"
 import { defaultVertexShader, defaultFragmentShader } from './constants/shaders'
 import { UniformsSidebar } from './components/UniformsSidebar'
 
+import ChangelogDialog from './components/ChangelogDialog'
+
 const App = () => {
   const [shape, setShape] = useState(() => localStorage.getItem('shape') || 'cube');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -110,6 +112,8 @@ const App = () => {
           onResetShaders={handleResetShaders}
         />
       )}
+
+      <ChangelogDialog />
     </div>
   ) 
 }
