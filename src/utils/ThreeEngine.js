@@ -26,6 +26,10 @@ export class ThreeEngine {
     
     this.animatedUniforms = [];
 
+    // Snapshot the built-in uniform names so updateCustomUniforms() can prune
+    // user-deleted uniforms without ever removing a built-in.
+    this.builtInUniformNames = new Set(Object.keys(this.uniforms));
+
     (this.initialCustomUniforms || []).forEach(cu => {
       this._setupCustomUniform(cu);
     });
@@ -59,13 +63,12 @@ export class ThreeEngine {
     this.renderer.debug.checkShaderErrors = true; // Enables WebGL error parsing in console
     this.container.appendChild(this.renderer.domElement);
 
-    // Ensure we permanently listen to shader errors just in case they slip by the compile try blocks
+    // Permanently watch for shader errors that slip past the compile-time
+    // capture below (e.g. errors surfaced during a later render).
     this.originalConsoleError = console.error;
     console.error = (...args) => {
-      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-      if (msg.includes('ERROR:') || msg.includes('THREE.WebGLProgram')) {
-        if (this.onError) this.onError(msg);
-      }
+      const msg = ThreeEngine._stringifyConsoleArgs(args);
+      if (ThreeEngine._isShaderError(msg) && this.onError) this.onError(msg);
       this.originalConsoleError.apply(console, args);
     };
 
@@ -74,31 +77,52 @@ export class ThreeEngine {
       fragmentShader: this.fragmentShader,
       uniforms: this.uniforms
     });
-    
-    let caughtInitError = null;
-    const originalConsoleError = console.error;
-    console.error = (...args) => {
-      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-      if (msg.includes('ERROR:') || msg.includes('THREE.WebGLProgram')) {
-        caughtInitError = msg;
-      }
-      originalConsoleError.apply(console, args);
-    };
 
     const geometry = createGeometry(shape);
     this.mesh = new THREE.Mesh(geometry, material);
     this.scene.add(this.mesh);
 
     try {
-      this.renderer.compile(this.scene, this.camera);
-      if (caughtInitError) {
-        if (this.onError) this.onError(caughtInitError);
-      }
+      const compileError = this._captureShaderError(() => this.renderer.compile(this.scene, this.camera));
+      if (compileError && this.onError) this.onError(compileError);
     } catch (e) {
       if (this.onError) this.onError(e.message || String(e));
-    } finally {
-      console.error = originalConsoleError;
     }
+  }
+
+  // Formats console.error arguments into a single searchable string.
+  static _stringifyConsoleArgs(args) {
+    return args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+  }
+
+  // True if a console message looks like a Three.js / WebGL shader-compile error.
+  static _isShaderError(msg) {
+    return msg.includes('ERROR:') || msg.includes('THREE.WebGLProgram');
+  }
+
+  // True if a uniform entry holds a Three.js texture.
+  static _isTextureEntry(entry) {
+    return !!(entry && entry.value && entry.value.isTexture);
+  }
+
+  // Runs `action` while intercepting Three.js shader-compile logs, then restores
+  // console.error. Returns the first captured error message, or null. Logs are
+  // chained to the native console (not the permanent listener) so a compile
+  // error is never reported twice.
+  _captureShaderError(action) {
+    const previousConsoleError = console.error;
+    let captured = null;
+    console.error = (...args) => {
+      const msg = ThreeEngine._stringifyConsoleArgs(args);
+      if (!captured && ThreeEngine._isShaderError(msg)) captured = msg;
+      this.originalConsoleError.apply(console, args);
+    };
+    try {
+      action();
+    } finally {
+      console.error = previousConsoleError;
+    }
+    return captured;
   }
 
   handleResize = () => {
@@ -111,8 +135,12 @@ export class ThreeEngine {
   }
 
   animate = () => {
-    const elapsedTime = this.clock.getElapsedTime();
+    // getDelta() advances the clock's internal oldTime/elapsedTime, so it must
+    // be read first. Reading elapsedTime afterward gives the matching elapsed
+    // value. (Calling getElapsedTime() first would consume the delta and leave
+    // a subsequent getDelta() returning ~0.)
     const delta = this.clock.getDelta();
+    const elapsedTime = this.clock.elapsedTime;
 
     this.uniforms.uTime.value = elapsedTime;
     this.uniforms.uDelta.value = delta;
@@ -175,15 +203,40 @@ export class ThreeEngine {
     this.mesh.geometry = newGeom;
   }
 
+  _defaultValueForType(type) {
+    if (type === 'vec2') return new THREE.Vector2();
+    if (type === 'vec3') return new THREE.Vector3();
+    if (type === 'vec4') return new THREE.Vector4();
+    return 0; // float
+  }
+
+  _valueMatchesType(value, type) {
+    if (type === 'float') return typeof value === 'number';
+    if (type === 'vec2') return !!(value && value.isVector2);
+    if (type === 'vec3') return !!(value && value.isVector3);
+    if (type === 'vec4') return !!(value && value.isVector4);
+    return false;
+  }
+
   _setupCustomUniform(cu) {
     if (!window.__threeEngine) window.__threeEngine = this;
     if (!window.__threeEngine.uniformErrors) window.__threeEngine.uniformErrors = {};
 
     if (cu.type === 'sampler2D') {
-      const texture = new THREE.TextureLoader().load(cu.value || 'https://threejs.org/examples/textures/uv_grid_opengl.jpg');
+      const source = cu.value || 'https://threejs.org/examples/textures/uv_grid_opengl.jpg';
+      const existing = this.uniforms[cu.name];
+      // Reuse the existing texture when the source hasn't changed. Reloading on
+      // every update (e.g. while scrubbing an unrelated float) leaks GPU textures.
+      if (ThreeEngine._isTextureEntry(existing) && existing.__source === source) {
+        return;
+      }
+      if (ThreeEngine._isTextureEntry(existing)) {
+        existing.value.dispose();
+      }
+      const texture = new THREE.TextureLoader().load(source);
       texture.wrapS = THREE.RepeatWrapping;
       texture.wrapT = THREE.RepeatWrapping;
-      this.uniforms[cu.name] = { value: texture };
+      this.uniforms[cu.name] = { value: texture, __source: source };
       return;
     }
 
@@ -191,13 +244,11 @@ export class ThreeEngine {
       try {
         const fn = new Function('time', 'delta', 'mouse', 'resolution', cu.value);
         this.animatedUniforms.push({ name: cu.name, type: cu.type, fn });
-        if (!this.uniforms[cu.name]) {
-          let val;
-          if (cu.type === 'float') val = 0;
-          else if (cu.type === 'vec2') val = new THREE.Vector2();
-          else if (cu.type === 'vec3') val = new THREE.Vector3();
-          else if (cu.type === 'vec4') val = new THREE.Vector4();
-          this.uniforms[cu.name] = { value: val };
+        const existing = this.uniforms[cu.name];
+        // Recreate the value holder if it's missing or its type changed, so the
+        // animate loop's .set() never runs against a mismatched value.
+        if (!existing || !this._valueMatchesType(existing.value, cu.type)) {
+          this.uniforms[cu.name] = { value: this._defaultValueForType(cu.type) };
         }
         window.__threeEngine.uniformErrors[cu.name] = null;
       } catch (e) {
@@ -211,21 +262,38 @@ export class ThreeEngine {
       else if (cu.type === 'vec2') val = new THREE.Vector2(parts[0]||0, parts[1]||0);
       else if (cu.type === 'vec3') val = new THREE.Vector3(parts[0]||0, parts[1]||0, parts[2]||0);
       else if (cu.type === 'vec4') val = new THREE.Vector4(parts[0]||0, parts[1]||0, parts[2]||0, parts[3]||0);
-      
-      if (!this.uniforms[cu.name]) {
+
+      const existing = this.uniforms[cu.name];
+      if (!existing || !this._valueMatchesType(existing.value, cu.type)) {
         this.uniforms[cu.name] = { value: val };
       } else {
-        this.uniforms[cu.name].value = val;
+        existing.value = val;
       }
     }
   }
 
   updateCustomUniforms(customUniforms) {
     if (!this.mesh) return;
-    
+
+    const incoming = customUniforms || [];
+    const desiredNames = new Set(incoming.map(cu => cu.name));
+
+    // Prune uniforms the user deleted. Built-ins are never removed.
+    Object.keys(this.uniforms).forEach(name => {
+      if (this.builtInUniformNames.has(name) || desiredNames.has(name)) return;
+      const entry = this.uniforms[name];
+      if (ThreeEngine._isTextureEntry(entry)) {
+        entry.value.dispose();
+      }
+      delete this.uniforms[name];
+      if (window.__threeEngine && window.__threeEngine.uniformErrors) {
+        delete window.__threeEngine.uniformErrors[name];
+      }
+    });
+
     this.animatedUniforms = [];
-    (customUniforms || []).forEach(cu => this._setupCustomUniform(cu));
-    
+    incoming.forEach(cu => this._setupCustomUniform(cu));
+
     // In case new uniforms were added to the material, we flag for update.
     this.mesh.material.needsUpdate = true;
   }
@@ -235,46 +303,33 @@ export class ThreeEngine {
     this.fragmentShader = fragmentShader;
     if (!this.mesh) return;
 
-    // We need to temporarily assign the new material to the mesh to compile it properly
     const oldMaterial = this.mesh.material;
-    
-    // Monkey-patch console.error to intercept Three.js shader compilation logs
-    const originalConsoleError = console.error;
-    let caughtError = null;
-    console.error = (...args) => {
-      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-      if (msg.includes('ERROR:') || msg.includes('THREE.WebGLProgram')) {
-        caughtError = msg;
-      }
-      originalConsoleError.apply(console, args);
-    };
+    let newMaterial = null;
 
     try {
-      const newMaterial = new THREE.ShaderMaterial({
-        vertexShader: this.vertexShader,
-        fragmentShader: this.fragmentShader,
-        uniforms: this.uniforms
+      // Swap in the new material and pre-compile it so the WebGL program links
+      // immediately and any shader error surfaces now (captured via console.error).
+      const compileError = this._captureShaderError(() => {
+        newMaterial = new THREE.ShaderMaterial({
+          vertexShader: this.vertexShader,
+          fragmentShader: this.fragmentShader,
+          uniforms: this.uniforms
+        });
+        this.mesh.material = newMaterial;
+        this.renderer.compile(this.scene, this.camera);
       });
-      this.mesh.material = newMaterial;
-      
-      // Pre-compile the material so the WebGL Program connects immediately
-      this.renderer.compile(this.scene, this.camera);
 
-      if (caughtError) {
-        if (this.onError) this.onError(caughtError);
-        // Rollback on error
-        this.mesh.material = oldMaterial;
-        newMaterial.dispose();
+      if (compileError) {
+        if (this.onError) this.onError(compileError);
+        this.mesh.material = oldMaterial; // roll back to the working shader
+        if (newMaterial) newMaterial.dispose();
       } else {
-        // Success
         oldMaterial.dispose();
       }
     } catch (e) {
       if (this.onError) this.onError(e.message || String(e));
       this.mesh.material = oldMaterial;
-    } finally {
-      // Restore console.error
-      console.error = originalConsoleError;
+      if (newMaterial) newMaterial.dispose();
     }
   }
 
@@ -296,7 +351,14 @@ export class ThreeEngine {
       this.mesh.geometry.dispose();
       this.mesh.material.dispose();
     }
-    
+
+    // Dispose any uploaded textures held by custom uniforms.
+    Object.values(this.uniforms).forEach(entry => {
+      if (ThreeEngine._isTextureEntry(entry)) {
+        entry.value.dispose();
+      }
+    });
+
     this.renderer.dispose();
     if (this.container && this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);

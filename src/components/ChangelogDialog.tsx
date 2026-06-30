@@ -7,26 +7,20 @@ import {
 } from "@shadcn/ui/components/ui/dialog";
 import ReactMarkdown from "react-markdown";
 import { useChangelogs } from "../hooks/useChangelogs";
-import { useState } from "react";
 
-const ChangelogDialog = ({}) => {
+interface ChangelogDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const ChangelogDialog = ({ open, onOpenChange }: ChangelogDialogProps) => {
   const {
-    actions: { setHasSeenLatestChangelog, hasLatestChangelogBeenSeen },
     states: { latestChangelog },
   } = useChangelogs();
 
-  const [isOpen, setIsOpen] = useState(!hasLatestChangelogBeenSeen());
-
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(open) => {
-        setHasSeenLatestChangelog() 
-        setIsOpen(val => !val)
-        return !open;
-    }}
-    >
-      <DialogContent className="dark sm:max-w-5xl w-[50vw] max-h-[85w] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="dark sm:max-w-5xl w-[50vw] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>ShaderBox v{latestChangelog.version}</DialogTitle>
           <DialogDescription className="sr-only">

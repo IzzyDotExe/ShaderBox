@@ -10,12 +10,25 @@ import { defaultVertexShader, defaultFragmentShader } from './constants/shaders'
 import { UniformsSidebar } from './components/UniformsSidebar'
 
 import ChangelogDialog from './components/ChangelogDialog'
+import { useChangelogs } from './hooks/useChangelogs'
 
 const App = () => {
+  const {
+    actions: { hasLatestChangelogBeenSeen, setHasSeenLatestChangelog },
+  } = useChangelogs();
+
   const [shape, setShape] = useState(() => localStorage.getItem('shape') || 'cube');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [bgColor, setBgColor] = useState(() => localStorage.getItem('bgColor') || '#111111');
+
+  // Auto-open the changelog on first visit after an update; the button below reopens it on demand.
+  const [changelogOpen, setChangelogOpen] = useState(() => !hasLatestChangelogBeenSeen());
+
+  const handleChangelogOpenChange = (open) => {
+    setChangelogOpen(open);
+    if (!open) setHasSeenLatestChangelog();
+  };
    
   const [editorVertexShader, setEditorVertexShader] = useState(() => {
     const saved = localStorage.getItem('vertexShader');
@@ -66,8 +79,18 @@ const App = () => {
   return (
     <div style={{ display: 'flex', width: '100%', height: '100%' }}>
       {sidebarOpen && (
-        <div style={{ width: 250, backgroundColor: 'rgba(34,34,34,.8)', color: '#fff', padding: 20, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column' }}>
-          <MainSidebar>
+        <div style={{ width: 250, backgroundColor: 'rgba(34,34,34,.8)', color: '#fff', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column' }}>
+          <MainSidebar
+            footer={
+              <Button
+                variant="outline"
+                onClick={() => setChangelogOpen(true)}
+                className="dark h-8 w-full text-xs bg-black/20 border-white/10 hover:bg-black/40 text-muted-foreground"
+              >
+                What's New?
+              </Button>
+            }
+          >
             <SettingsSidebar bgColor={bgColor} setBgColor={setBgColor} />
             <ShapesSidebar shape={shape} setShape={setShape} />
             <UniformsSidebar
@@ -87,13 +110,13 @@ const App = () => {
         >
           {sidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
         </Button>
-        <Button 
-          onClick={() => setRightSidebarOpen(prev => !prev)} 
+        <Button
+          onClick={() => setRightSidebarOpen(prev => !prev)}
           style={{ position: 'absolute', bottom: 10, right: 10, zIndex: 10, color: '#fff', margin: '4px' }}
         >
           {rightSidebarOpen ? 'Hide Editor' : 'Show Editor'}
         </Button>
-        
+
         <ThreeCanvas 
           shape={shape} 
           vertexShader={activeVertexShader} 
@@ -113,7 +136,7 @@ const App = () => {
         />
       )}
 
-      <ChangelogDialog />
+      <ChangelogDialog open={changelogOpen} onOpenChange={handleChangelogOpenChange} />
     </div>
   ) 
 }
